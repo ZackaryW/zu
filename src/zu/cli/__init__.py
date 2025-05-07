@@ -231,12 +231,14 @@ def zu_entry():
             
     global run_as_detached
     run_as_detached = False
-    if sys.argv[1] == "-d":
-        sys.argv.pop(1)
-        run_as_detached = True
 
     if len(sys.argv) == 1:
         zu()
+
+    elif sys.argv[1] == "-d":
+        sys.argv.pop(1)
+        run_as_detached = True
+
     elif sys.argv[1] in ZU_ENUM.ZU_INTERNAL_COMMANDS:
         zu()
     elif sys.argv[1] == "kv":
