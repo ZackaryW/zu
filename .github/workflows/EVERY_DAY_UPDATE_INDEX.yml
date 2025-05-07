@@ -1,0 +1,140 @@
+name: Daily Repository Check
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  check-repositories:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests toml
+
+      - name: Check repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<EOF
+          import os
+          import requests
+          import toml
+          from datetime import datetime, timezone
+          import json
+          import sys
+
+          def get_repositories():
+              try:
+                  headers = {'Authorization': f'token {os.environ["GITHUB_TOKEN"]}'}
+                  url = "https://api.github.com/orgs/zackaryuu/repos"
+                  response = requests.get(url, headers=headers)
+                  response.raise_for_status()  # Raise an exception for bad status codes
+                  return response.json()
+              except requests.exceptions.RequestException as e:
+                  print(f"Error fetching repositories: {e}", file=sys.stderr)
+                  sys.exit(1)
+              except KeyError:
+                  print("Error: GITHUB_TOKEN environment variable not found", file=sys.stderr)
+                  sys.exit(1)
+
+          def get_file_content(repo, path):
+              try:
+                  headers = {'Authorization': f'token {os.environ["GITHUB_TOKEN"]}'}
+                  url = f"https://api.github.com/repos/zackaryuu/{repo}/contents/{path}"
+                  response = requests.get(url, headers=headers)
+                  response.raise_for_status()
+                  content = response.json()['content']
+                  import base64
+                  return base64.b64decode(content).decode('utf-8')
+              except requests.exceptions.RequestException as e:
+                  print(f"Error fetching {path} from {repo}: {e}", file=sys.stderr)
+                  return None
+              except (KeyError, json.JSONDecodeError) as e:
+                  print(f"Error processing response for {repo}: {e}", file=sys.stderr)
+                  return None
+
+          def check_pyproject_toml(repo):
+              content = get_file_content(repo, "pyproject.toml")
+              if content:
+                  try:
+                      toml_data = toml.loads(content)
+                      if 'project' in toml_data:
+                          return {
+                              'name': toml_data['project'].get('name'),
+                              'version': toml_data['project'].get('version')
+                          }
+                  except toml.TomlDecodeError as e:
+                      print(f"Error parsing pyproject.toml for {repo}: {e}", file=sys.stderr)
+                  except Exception as e:
+                      print(f"Unexpected error processing {repo}: {e}", file=sys.stderr)
+              return None
+
+          try:
+              # Get all repositories
+              repos = get_repositories()
+              
+              # Filter repositories with 'cli' topic
+              cli_repos = [repo for repo in repos if 'cli' in repo.get('topics', [])]
+              
+              if not cli_repos:
+                  print("No repositories found with 'cli' topic", file=sys.stderr)
+                  sys.exit(0)
+              
+              results = []
+              for repo in cli_repos:
+                  repo_name = repo['name']
+                  pyproject_info = check_pyproject_toml(repo_name)
+                  if pyproject_info:
+                      results.append({
+                          'repository': repo_name,
+                          'name': pyproject_info['name'],
+                          'version': pyproject_info['version'],
+                          'last_updated': repo['updated_at']
+                      })
+              
+              # Create directory if it doesn't exist
+              os.makedirs('src/zu/data', exist_ok=True)
+              
+              # Save results to a file
+              with open('src/zu/data/indexes.json', 'w') as f:
+                  json.dump(results, f, indent=2)
+              
+              print(f"Successfully processed {len(results)} repositories")
+              
+          except Exception as e:
+              print(f"Unexpected error: {e}", file=sys.stderr)
+              sys.exit(1)
+          EOF
+
+      - name: Create or update index file
+        run: |
+          if [ -f src/zu/data/indexes.json ]; then
+            echo "Repository versions updated successfully"
+            cat src/zu/data/indexes.json
+          else
+            echo "No repository versions found"
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Commit and push if changes
+        run: |
+          git add src/zu/data/indexes.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update repository versions [skip ci]" && git push)
