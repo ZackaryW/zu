@@ -129,6 +129,15 @@ jobs:
             exit 1
           fi
 
+      - name: Bump version
+        if: success()
+        uses: apowis/pyproject-bump-version@v0.0.2
+        with:
+          file_to_bump: "./pyproject.toml"
+          bump_type: "patch"
+          main_branch: "main"
+          python_version: "3.11"
+
       - name: Configure Git
         run: |
           git config --global user.name "GitHub Actions"
@@ -138,3 +147,5 @@ jobs:
         run: |
           git add src/zu/data/indexes.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update repository versions [skip ci]" && git push)
+
+      
