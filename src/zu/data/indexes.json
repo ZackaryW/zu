@@ -4,5 +4,11 @@
     "name": "zu.curr-coord",
     "version": "0.1.0",
     "last_updated": "2025-05-06T17:20:53Z"
+  },
+  {
+    "repository": "pdresume",
+    "name": "zu.pdresume",
+    "version": "0.1.0",
+    "last_updated": "2025-05-07T05:41:26Z"
   }
 ]
