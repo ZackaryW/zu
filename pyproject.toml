@@ -1,38 +1,28 @@
 [project]
 name = "zu"
-version = "1.0.1"
+version = "1.0.2"
 description = "Zack's Useful Utilities"
-authors = [
-    { name = "ZackaryW", email = "36378555+ZackaryW@users.noreply.github.com" }
-]
-dependencies = [
-    "click>=8.1.8",
-    "toml>=0.10.2",
-    "pyuac>=0.0.3",
-    "zuu>=8.5.0",
-]
+dependencies = [ "click>=8.1.8", "toml>=0.10.2", "pyuac>=0.0.3", "zuu>=8.5.0",]
 readme = "README.md"
 requires-python = ">= 3.8"
+[[project.authors]]
+name = "ZackaryW"
+email = "36378555+ZackaryW@users.noreply.github.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
 
 [project.scripts]
 zu = "zu.cli:zu_entry"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "pywin32>=310",
-]
+dev-dependencies = [ "pywin32>=310",]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/zu"]
-include = [
-    "src/zu/data/indexes.json",
-]
-
+packages = [ "src/zu",]
+include = [ "src/zu/data/indexes.json",]
