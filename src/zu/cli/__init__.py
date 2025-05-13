@@ -205,6 +205,7 @@ def run_detached(cmd, pkg_path=None):
 
 def run_package(pkg_path: str, pkg_name: str):
     """Run a package with rye sync and proper argument handling"""
+    os.environ["ZU_ACTUAL_CWD"] = os.getcwd()
     try:
         subprocess.run(["rye", "sync"], cwd=pkg_path, check=True)
         cmd = ["rye", "run", f"zu-{pkg_name}"]
