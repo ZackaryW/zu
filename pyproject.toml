@@ -1,6 +1,6 @@
 [project]
 name = "zu"
-version = "1.0.6"
+version = "1.0.7"
 description = "Zack's Useful Utilities"
 dependencies = [ "click>=8.1.8", "toml>=0.10.2", "pyuac>=0.0.3", "zuu>=8.5.0",]
 readme = "README.md"
